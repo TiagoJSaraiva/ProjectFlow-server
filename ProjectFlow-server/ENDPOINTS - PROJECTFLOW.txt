@@ -1,0 +1,52 @@
+ENDPOINTS DE AUTENTICAÇÃO (/api/auth)
+Registro & Login
+
+POST /api/auth/register - Registrar novo usuário
+POST /api/auth/login - Fazer login (retorna JWT)
+
+GET /api/auth/verify - Verificar se token é válido
+
+-------------------------------------------------------
+
+ENDPOINTS DE USUÁRIOS (/api/users)
+CRUD de Usuários
+
+GET /api/users - Listar todos os usuários
+GET /api/users/{id} - Buscar usuário por ID
+
+PUT /api/users/{id} - Atualizar dados do usuário
+PUT /api/users/{id}/password - Atualizar senha do usuário
+
+DELETE /api/users/{id} - Excluir usuário
+
+-----------------------------------------------------------
+
+ENDPOINTS DE PROJETOS (/api/projects)
+Gerenciamento de Projetos
+
+GET /api/projects/user/{userId} - Listar projetos de um usuário
+GET /api/projects/{id} - Buscar projeto por ID
+
+POST /api/projects/user/{userId} - Criar novo projeto
+
+PUT /api/projects/{id} - Atualizar projeto
+
+DELETE /api/projects/{id} - Excluir projeto
+
+-----------------------------------------------------------
+
+ENDPOINTS DE ELEMENTOS (/api/elements)
+Elementos do Canvas
+
+GET /api/elements/project/{projectId} - Listar elementos de um projeto
+GET /api/elements/{id} - Buscar elemento por ID
+
+POST /api/elements/project/{projectId} - Criar novo elemento
+
+DELETE /api/elements/{id} - Excluir elemento
+
+-----> Atualizações Específicas
+PUT /api/elements/{id} - Atualizar dados básicos (nome, descrição)
+PUT /api/elements/{id}/content - Atualizar conteúdo interno
+PUT /api/elements/{id}/coordinates - Atualizar coordenadas no canvas
+PUT /api/elements/{id}/relations - Atualizar conexões com outros elementos

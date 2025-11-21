@@ -1,0 +1,183 @@
+-- =============================================
+-- PROJECT FLOW - DATABASE LOCAL
+-- MySQL Local Setup
+-- =============================================
+
+-- Criar database (execute separadamente no MySQL)
+-- CREATE DATABASE project_flow;
+
+-- Conectar ao database project_flow e executar o restante:
+
+-- MySQL não precisa de extensão para UUID, é nativo no MySQL 8+
+
+-- =============================================
+-- TABELA: usuarios
+-- =============================================
+CREATE TABLE usuarios (
+    id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    metadados JSON DEFAULT ('{}'),
+    data_criado TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =============================================
+-- TABELA: projetos
+-- =============================================
+CREATE TABLE projetos (
+    id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    nome VARCHAR(100) NOT NULL,
+    descricao TEXT,
+    data_criado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ultima_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id_usuario VARCHAR(36) NOT NULL,
+    CONSTRAINT fk_projeto_usuario 
+        FOREIGN KEY (id_usuario) 
+        REFERENCES usuarios(id) 
+        ON DELETE CASCADE
+);
+
+-- =============================================
+-- TABELA: elementos
+-- =============================================
+CREATE TABLE elementos (
+    id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+    nome VARCHAR(100) NOT NULL DEFAULT 'Novo Elemento',
+    descricao TEXT,
+    conteudo TEXT,
+    tipo VARCHAR(20) NOT NULL DEFAULT 'TEXTO',
+    coordenadas JSON DEFAULT ('{"x": 0, "y": 0, "width": 100, "height": 100}'),
+    relacoes JSON DEFAULT ('[]'),
+    data_criado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ultima_alteracao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id_projeto VARCHAR(36) NOT NULL,
+    CONSTRAINT fk_elemento_projeto 
+        FOREIGN KEY (id_projeto) 
+        REFERENCES projetos(id) 
+        ON DELETE CASCADE,
+    CONSTRAINT chk_tipo_valido 
+        CHECK (tipo IN ('CIRCULO', 'RETANGULO', 'TRIANGULO', 'TEXTO'))
+);
+
+
+-- DADOS PARA TESTES ABAIXO
+
+
+-- =============================================
+-- ÍNDICES PARA PERFORMANCE
+-- =============================================
+CREATE INDEX idx_usuarios_email ON usuarios(email);
+CREATE INDEX idx_projetos_usuario ON projetos(id_usuario);
+CREATE INDEX idx_elementos_projeto ON elementos(id_projeto);
+CREATE INDEX idx_elementos_tipo ON elementos(tipo);
+
+-- =============================================
+-- DADOS INICIAIS PARA TESTE
+-- =============================================
+
+-- Inserir usuário de teste (senha: "senha123" criptografada com BCrypt)
+INSERT INTO usuarios (id, nome, email, senha) VALUES 
+(
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 
+    'Usuário Demo', 
+    'demo@projectflow.com', 
+    '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTV5UiC'
+);
+
+-- Inserir projetos de demonstração
+INSERT INTO projetos (id, nome, descricao, id_usuario) VALUES 
+(
+    'c2eeac99-9c0b-4ef8-bb6d-6bb9bd380a13',
+    'Projeto Fluxo de Trabalho',
+    'Diagrama do nosso processo de desenvolvimento',
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+),
+(
+    'd3ffac99-9c0b-4ef8-bb6d-6bb9bd380a14',
+    'Arquitetura do Sistema',
+    'Diagrama da arquitetura do Project Flow',
+    'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
+);
+
+-- Inserir elementos de demonstração
+INSERT INTO elementos (id, nome, descricao, tipo, coordenadas, relacoes, id_projeto) VALUES 
+-- Projeto 1 - Fluxo de Trabalho
+(
+    'f5hhac99-9c0b-4ef8-bb6d-6bb9bd380a16',
+    'Início',
+    'Ponto de início do processo',
+    'CIRCULO',
+    '{"x": 100, "y": 100, "width": 80, "height": 80}',
+    '["f6iiac99-9c0b-4ef8-bb6d-6bb9bd380a17"]',
+    'c2eeac99-9c0b-4ef8-bb6d-6bb9bd380a13'
+),
+(
+    'f6iiac99-9c0b-4ef8-bb6d-6bb9bd380a17',
+    'Análise',
+    'Analisar requisitos',
+    'RETANGULO',
+    '{"x": 250, "y": 90, "width": 120, "height": 60}',
+    '["f7jjac99-9c0b-4ef8-bb6d-6bb9bd380a18"]',
+    'c2eeac99-9c0b-4ef8-bb6d-6bb9bd380a13'
+),
+(
+    'f7jjac99-9c0b-4ef8-bb6d-6bb9bd380a18',
+    'Desenvolvimento',
+    'Implementar funcionalidades',
+    'RETANGULO',
+    '{"x": 450, "y": 90, "width": 140, "height": 60}',
+    '["f8kkac99-9c0b-4ef8-bb6d-6bb9bd380a19"]',
+    'c2eeac99-9c0b-4ef8-bb6d-6bb9bd380a13'
+),
+(
+    'f8kkac99-9c0b-4ef8-bb6d-6bb9bd380a19',
+    'Testes',
+    'Testar a aplicação',
+    'RETANGULO',
+    '{"x": 650, "y": 90, "width": 120, "height": 60}',
+    '["f9llac99-9c0b-4ef8-bb6d-6bb9bd380a20"]',
+    'c2eeac99-9c0b-4ef8-bb6d-6bb9bd380a13'
+),
+(
+    'f9llac99-9c0b-4ef8-bb6d-6bb9bd380a20',
+    'Deploy',
+    'Publicar aplicação',
+    'CIRCULO',
+    '{"x": 850, "y": 100, "width": 80, "height": 80}',
+    '[]',
+    'c2eeac99-9c0b-4ef8-bb6d-6bb9bd380a13'
+),
+-- Projeto 2 - Arquitetura
+(
+    'g0mmac99-9c0b-4ef8-bb6d-6bb9bd380a21',
+    'Frontend',
+    'Interface do usuário',
+    'RETANGULO',
+    '{"x": 150, "y": 200, "width": 140, "height": 80}',
+    '["g1nnac99-9c0b-4ef8-bb6d-6bb9bd380a22"]',
+    'd3ffac99-9c0b-4ef8-bb6d-6bb9bd380a14'
+),
+(
+    'g1nnac99-9c0b-4ef8-bb6d-6bb9bd380a22',
+    'Backend API',
+    'Serviços REST',
+    'RETANGULO',
+    '{"x": 350, "y": 200, "width": 140, "height": 80}',
+    '["g2ooac99-9c0b-4ef8-bb6d-6bb9bd380a23"]',
+    'd3ffac99-9c0b-4ef8-bb6d-6bb9bd380a14'
+),
+(
+    'g2ooac99-9c0b-4ef8-bb6d-6bb9bd380a23',
+    'Database',
+    'PostgreSQL',
+    'TRIANGULO',
+    '{"x": 550, "y": 200, "width": 120, "height": 100}',
+    '[]',
+    'd3ffac99-9c0b-4ef8-bb6d-6bb9bd380a14'
+);
+
+-- Mensagem de confirmação
+SELECT '✅ DATABASE PROJECT_FLOW CONFIGURADO COM SUCESSO!' as status;
+SELECT '📊 Estrutura: 3 tabelas, 4 índices, dados de demo inseridos' as detalhes;
+SELECT '👤 Usuário demo: demo@projectflow.com / senha: senha123' as credenciais;
