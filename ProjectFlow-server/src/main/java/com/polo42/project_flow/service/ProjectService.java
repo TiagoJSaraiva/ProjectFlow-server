@@ -95,7 +95,7 @@ public class ProjectService {
             project.getUltimaAlteracao(),
             project.getUsuario().getId(),
             project.getUsuario().getNome(),
-            project.getElementos() != null ? project.getElementos().size() : 0
+            0
         );
     }
 }

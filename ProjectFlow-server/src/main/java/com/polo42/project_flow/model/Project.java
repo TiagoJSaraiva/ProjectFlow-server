@@ -29,10 +29,6 @@ public class Project {
     @JoinColumn(name = "id_usuario", nullable = false)
     private User usuario;
 
-    // Um projeto pode ter vários elementos
-    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Element> elementos = new ArrayList<>();
-
     // Getters e Setters
 
     public UUID getId() { return id; }
@@ -52,7 +48,4 @@ public class Project {
 
     public User getUsuario() { return usuario; }
     public void setUsuario(User usuario) { this.usuario = usuario; }
-
-    public List<Element> getElementos() { return elementos; }
-    public void setElementos(List<Element> elementos) { this.elementos = elementos; }
 }
