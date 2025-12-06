@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -13,7 +14,12 @@ public interface DiagramNodeRepository extends JpaRepository<DiagramNode, UUID> 
 
     List<DiagramNode> findByProjetoIdOrderByCreatedAtAsc(UUID projetoId);
 
-    @Modifying
+    long countByProjetoId(UUID projetoId);
+
+    @Modifying(clearAutomatically = true)
     @Query("delete from DiagramNode n where n.projeto.id = :projetoId")
-    void deleteByProjetoId(UUID projetoId);
+    void deleteByProjetoId(@Param("projetoId") UUID projetoId);
+
+    @Query("select n.projeto.id as projetoId, count(n) as total from DiagramNode n where n.projeto.id in :projetoIds group by n.projeto.id")
+    List<ProjectTaskCountProjection> countTasksByProjetoIds(@Param("projetoIds") List<UUID> projetoIds);
 }

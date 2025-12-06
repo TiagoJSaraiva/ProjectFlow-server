@@ -9,6 +9,7 @@ public class ProjectDTO {
     private String descricao;
     private LocalDateTime dataCriado;
     private LocalDateTime ultimaAlteracao;
+    private LocalDateTime ultimoAcesso;
     private UUID usuarioId;
     private String usuarioNome;
     private int totalTarefas;
@@ -16,13 +17,15 @@ public class ProjectDTO {
     // Construtores
     public ProjectDTO() {}
     
-    public ProjectDTO(UUID id, String nome, String descricao, LocalDateTime dataCriado, 
-                     LocalDateTime ultimaAlteracao, UUID usuarioId, String usuarioNome, int totalTarefas) {
+    public ProjectDTO(UUID id, String nome, String descricao, LocalDateTime dataCriado,
+                     LocalDateTime ultimaAlteracao, LocalDateTime ultimoAcesso,
+                     UUID usuarioId, String usuarioNome, int totalTarefas) {
         this.id = id;
         this.nome = nome;
         this.descricao = descricao;
         this.dataCriado = dataCriado;
         this.ultimaAlteracao = ultimaAlteracao;
+        this.ultimoAcesso = ultimoAcesso;
         this.usuarioId = usuarioId;
         this.usuarioNome = usuarioNome;
         this.totalTarefas = totalTarefas;
@@ -39,6 +42,8 @@ public class ProjectDTO {
     public void setDataCriado(LocalDateTime dataCriado) { this.dataCriado = dataCriado; }
     public LocalDateTime getUltimaAlteracao() { return ultimaAlteracao; }
     public void setUltimaAlteracao(LocalDateTime ultimaAlteracao) { this.ultimaAlteracao = ultimaAlteracao; }
+    public LocalDateTime getUltimoAcesso() { return ultimoAcesso; }
+    public void setUltimoAcesso(LocalDateTime ultimoAcesso) { this.ultimoAcesso = ultimoAcesso; }
     public UUID getUsuarioId() { return usuarioId; }
     public void setUsuarioId(UUID usuarioId) { this.usuarioId = usuarioId; }
     public String getUsuarioNome() { return usuarioNome; }

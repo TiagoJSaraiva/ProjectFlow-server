@@ -24,6 +24,9 @@ public class Project {
     @Column(name = "ultima_alteracao")
     private LocalDateTime ultimaAlteracao = LocalDateTime.now();
 
+    @Column(name = "ultimo_acesso")
+    private LocalDateTime ultimoAcesso = LocalDateTime.now();
+
     // Muitos projetos pertencem a um usuário
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_usuario", nullable = false)
@@ -45,6 +48,9 @@ public class Project {
 
     public LocalDateTime getUltimaAlteracao() { return ultimaAlteracao; }
     public void setUltimaAlteracao(LocalDateTime ultimaAlteracao) { this.ultimaAlteracao = ultimaAlteracao; }
+
+    public LocalDateTime getUltimoAcesso() { return ultimoAcesso; }
+    public void setUltimoAcesso(LocalDateTime ultimoAcesso) { this.ultimoAcesso = ultimoAcesso; }
 
     public User getUsuario() { return usuario; }
     public void setUsuario(User usuario) { this.usuario = usuario; }

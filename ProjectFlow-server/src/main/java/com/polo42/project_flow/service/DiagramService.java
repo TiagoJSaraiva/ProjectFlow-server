@@ -66,6 +66,9 @@ public class DiagramService {
             Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", projectId.toString()));
 
+            project.setUltimoAcesso(LocalDateTime.now());
+            projectRepository.save(project);
+
             applyProjectMetadata(project, request.getProject());
             project.setUltimaAlteracao(LocalDateTime.now());
             projectRepository.save(project);
