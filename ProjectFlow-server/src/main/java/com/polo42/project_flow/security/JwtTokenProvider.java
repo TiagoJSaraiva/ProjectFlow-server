@@ -6,21 +6,39 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
 
-    @Value("${app.jwt.secret}")
+    static final int MIN_SECRET_LENGTH = 64;
+
+    @Value("${app.jwt.secret:}")
     private String jwtSecret;
 
     @Value("${app.jwt.expiration}")
     private int jwtExpiration;
 
+    @PostConstruct
+    void validateSecret() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException(
+                "JWT_SECRET nao configurado: defina a variavel de ambiente JWT_SECRET com no minimo "
+                + MIN_SECRET_LENGTH + " caracteres (veja .env.example).");
+        }
+        if (jwtSecret.getBytes(StandardCharsets.UTF_8).length < MIN_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                "JWT_SECRET muito curto: sao necessarios no minimo " + MIN_SECRET_LENGTH
+                + " caracteres para o algoritmo HS512.");
+        }
+    }
+
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(Authentication authentication) {
