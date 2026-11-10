@@ -1,0 +1,21 @@
+# Repositorio aninhado (frontend) e arquivos locais
+ProjectFlow-webapp/
+anotacoes.txt
+.env
+.vscode/
+
+# Build
+target/
+
+# IDEs
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.factorypath
+.sts4-cache/
+.apt_generated/
+.DS_Store
