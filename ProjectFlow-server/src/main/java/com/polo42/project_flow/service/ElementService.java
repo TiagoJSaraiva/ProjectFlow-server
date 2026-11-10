@@ -26,17 +26,14 @@ public class ElementService {
     private ProjectRepository projectRepository;
 
     // 🔹 Buscar elemento por ID
-    public ElementDTO findById(UUID id) {
-        Element element = elementRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Elemento", "id", id.toString()));
+    public ElementDTO findById(UUID id, UUID currentUserId) {
+        Element element = findOwned(id, currentUserId);
         return convertToDTO(element);
     }
 
     // 🔹 Listar elementos de um projeto
-    public List<ElementDTO> findByProjetoId(UUID projetoId) {
-        if (!projectRepository.existsById(projetoId)) {
-            throw new ResourceNotFoundException("Projeto", "id", projetoId.toString());
-        }
+    public List<ElementDTO> findByProjetoId(UUID projetoId, UUID currentUserId) {
+        findOwnedProject(projetoId, currentUserId);
 
         return elementRepository.findByProjetoId(projetoId)
                 .stream()
@@ -45,9 +42,8 @@ public class ElementService {
     }
 
     // 🔹 Criar novo elemento
-    public ElementDTO create(UUID projetoId, ElementDTO elementDTO) {
-        Project projeto = projectRepository.findById(projetoId)
-                .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", projetoId.toString()));
+    public ElementDTO create(UUID projetoId, UUID currentUserId, ElementDTO elementDTO) {
+        Project projeto = findOwnedProject(projetoId, currentUserId);
 
         Element element = new Element();
         element.setNome(elementDTO.getNome());
@@ -65,9 +61,8 @@ public class ElementService {
     }
 
     // 🔹 Atualizar dados básicos do elemento
-    public ElementDTO update(UUID id, ElementDTO elementDTO) {
-        Element element = elementRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Elemento", "id", id.toString()));
+    public ElementDTO update(UUID id, UUID currentUserId, ElementDTO elementDTO) {
+        Element element = findOwned(id, currentUserId);
 
         element.setNome(elementDTO.getNome());
         element.setDescricao(elementDTO.getDescricao());
@@ -78,9 +73,8 @@ public class ElementService {
     }
 
     // 🔹 Atualizar conteúdo do elemento
-    public ElementDTO updateContent(UUID id, String conteudo) {
-        Element element = elementRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Elemento", "id", id.toString()));
+    public ElementDTO updateContent(UUID id, UUID currentUserId, String conteudo) {
+        Element element = findOwned(id, currentUserId);
 
         element.setConteudo(conteudo);
         element.setUltimaAlteracao(LocalDateTime.now());
@@ -90,9 +84,8 @@ public class ElementService {
     }
 
     // 🔹 Atualizar coordenadas do elemento
-    public ElementDTO updateCoordinates(UUID id, String coordenadas) {
-        Element element = elementRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Elemento", "id", id.toString()));
+    public ElementDTO updateCoordinates(UUID id, UUID currentUserId, String coordenadas) {
+        Element element = findOwned(id, currentUserId);
 
         element.setCoordenadas(coordenadas);
         element.setUltimaAlteracao(LocalDateTime.now());
@@ -102,9 +95,8 @@ public class ElementService {
     }
 
     // 🔹 Atualizar relações do elemento
-    public ElementDTO updateRelations(UUID id, String relacoes) {
-        Element element = elementRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Elemento", "id", id.toString()));
+    public ElementDTO updateRelations(UUID id, UUID currentUserId, String relacoes) {
+        Element element = findOwned(id, currentUserId);
 
         element.setRelacoes(relacoes);
         element.setUltimaAlteracao(LocalDateTime.now());
@@ -114,11 +106,21 @@ public class ElementService {
     }
 
     // 🔹 Deletar elemento
-    public void delete(UUID id) {
-        if (!elementRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Elemento", "id", id.toString());
-        }
-        elementRepository.deleteById(id);
+    public void delete(UUID id, UUID currentUserId) {
+        Element element = findOwned(id, currentUserId);
+        elementRepository.delete(element);
+    }
+
+    // Projeto/elemento de outro usuário é tratado como inexistente (404)
+    private Project findOwnedProject(UUID projetoId, UUID currentUserId) {
+        return projectRepository.findByIdAndUsuarioId(projetoId, currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", projetoId.toString()));
+    }
+
+    private Element findOwned(UUID id, UUID currentUserId) {
+        return elementRepository.findById(id)
+                .filter(e -> e.getProjeto().getUsuario().getId().equals(currentUserId))
+                .orElseThrow(() -> new ResourceNotFoundException("Elemento", "id", id.toString()));
     }
 
     // 🔹 Converter Element para ElementDTO

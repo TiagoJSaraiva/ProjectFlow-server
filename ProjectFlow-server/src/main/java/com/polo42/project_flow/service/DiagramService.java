@@ -60,10 +60,10 @@ public class DiagramService {
     }
 
     @Transactional
-    public ProjectDiagramDTO saveDiagram(UUID projectId, SaveProjectDiagramRequest request) {
+    public ProjectDiagramDTO saveDiagram(UUID projectId, UUID currentUserId, SaveProjectDiagramRequest request) {
         log.debug("[DiagramService] Persisting diagram for project {}", projectId);
         try {
-            Project project = projectRepository.findById(projectId)
+            Project project = projectRepository.findByIdAndUsuarioId(projectId, currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", projectId.toString()));
 
             project.setUltimoAcesso(LocalDateTime.now());
@@ -77,6 +77,7 @@ public class DiagramService {
             nodeRepository.deleteByProjetoId(projectId);
 
             List<DiagramNode> nodes = storeNodes(project, request.getNodes());
+            assertIdsNotInUse(nodes, request.getConnections());
             Map<UUID, DiagramNode> nodeIndex = nodes.stream()
                 .collect(Collectors.toMap(DiagramNode::getId, node -> node));
 
@@ -96,7 +97,7 @@ public class DiagramService {
             nodeRepository.saveAll(nodes);
             connectionRepository.saveAll(connections);
 
-            return loadDiagram(projectId);
+            return loadDiagram(projectId, currentUserId);
         } catch (RuntimeException exception) {
             log.error("[DiagramService] Failed to persist diagram for project {}", projectId, exception);
             throw exception;
@@ -104,10 +105,10 @@ public class DiagramService {
     }
 
     @Transactional
-    public ProjectDiagramDTO loadDiagram(UUID projectId) {
+    public ProjectDiagramDTO loadDiagram(UUID projectId, UUID currentUserId) {
         log.debug("[DiagramService] Loading diagram for project {}", projectId);
         try {
-            Project project = projectRepository.findById(projectId)
+            Project project = projectRepository.findByIdAndUsuarioId(projectId, currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", projectId.toString()));
 
             project.setUltimoAcesso(LocalDateTime.now());
@@ -160,6 +161,22 @@ public class DiagramService {
                 throw new BusinessException("A descrição do projeto não pode ultrapassar 10.000 caracteres.");
             }
             project.setDescricao(metadata.getDescription());
+        }
+    }
+
+    // Após apagar o diagrama atual do projeto, qualquer id ainda existente pertence a outro projeto.
+    private void assertIdsNotInUse(List<DiagramNode> nodes, List<DiagramConnectionDTO> connections) {
+        for (DiagramNode node : nodes) {
+            if (nodeRepository.existsById(node.getId())) {
+                throw new BusinessException("Identificador de elemento já está em uso.");
+            }
+        }
+        if (connections != null) {
+            for (DiagramConnectionDTO connection : connections) {
+                if (connection.getId() != null && connectionRepository.existsById(connection.getId())) {
+                    throw new BusinessException("Identificador de conexão já está em uso.");
+                }
+            }
         }
     }
 

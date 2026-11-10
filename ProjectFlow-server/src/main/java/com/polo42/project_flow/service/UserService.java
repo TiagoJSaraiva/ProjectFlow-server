@@ -24,7 +24,10 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     // 🔹 Buscar usuário por ID
-    public Optional<UserDTO> findById(UUID id) {
+    public Optional<UserDTO> findById(UUID id, UUID currentUserId) {
+        if (!id.equals(currentUserId)) {
+            return Optional.empty();
+        }
         return userRepository.findById(id)
                 .map(this::convertToDTO);
     }
@@ -35,18 +38,17 @@ public class UserService {
                 .map(this::convertToDTO);
     }
 
-    // 🔹 Listar todos os usuários
-    public List<UserDTO> findAll() {
-        return userRepository.findAll()
-                .stream()
+    // 🔹 Listar usuários: um usuário só enxerga a própria conta
+    public List<UserDTO> findAll(UUID currentUserId) {
+        return userRepository.findById(currentUserId)
                 .map(this::convertToDTO)
+                .stream()
                 .collect(Collectors.toList());
     }
 
     // 🔹 Atualizar usuário
-    public UserDTO update(UUID id, UserDTO userDTO) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário", "id", id.toString()));
+    public UserDTO update(UUID id, UUID currentUserId, UserDTO userDTO) {
+        User user = findSelf(id, currentUserId);
 
         // Verificar se o email já está em uso por outro usuário
         if (userRepository.existsByEmailAndIdNot(userDTO.getEmail(), id)) {
@@ -61,20 +63,26 @@ public class UserService {
     }
 
     // 🔹 Atualizar senha
-    public void updatePassword(UUID id, String newPassword) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário", "id", id.toString()));
+    public void updatePassword(UUID id, UUID currentUserId, String newPassword) {
+        User user = findSelf(id, currentUserId);
 
         user.setSenha(passwordEncoder.encode(newPassword));
         userRepository.save(user);
     }
 
     // 🔹 Deletar usuário
-    public void delete(UUID id) {
-        if (!userRepository.existsById(id)) {
+    public void delete(UUID id, UUID currentUserId) {
+        findSelf(id, currentUserId);
+        userRepository.deleteById(id);
+    }
+
+    // Conta de outro usuário é tratada como inexistente (404)
+    private User findSelf(UUID id, UUID currentUserId) {
+        if (!id.equals(currentUserId)) {
             throw new ResourceNotFoundException("Usuário", "id", id.toString());
         }
-        userRepository.deleteById(id);
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário", "id", id.toString()));
     }
 
     // 🔹 Converter User para UserDTO

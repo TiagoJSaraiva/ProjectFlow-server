@@ -41,17 +41,16 @@ public class ProjectService {
 
     // 🔹 Buscar projeto por ID
     @Transactional(readOnly = true)
-    public ProjectDTO findById(UUID id) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", id.toString()));
+    public ProjectDTO findById(UUID id, UUID currentUserId) {
+        Project project = findOwned(id, currentUserId);
         int totalTarefas = Math.toIntExact(diagramNodeRepository.countByProjetoId(project.getId()));
         return convertToDTO(project, totalTarefas);
     }
 
     // 🔹 Listar projetos de um usuário
     @Transactional(readOnly = true)
-    public List<ProjectDTO> findByUsuarioId(UUID usuarioId) {
-        if (!userRepository.existsById(usuarioId)) {
+    public List<ProjectDTO> findByUsuarioId(UUID usuarioId, UUID currentUserId) {
+        if (!usuarioId.equals(currentUserId) || !userRepository.existsById(usuarioId)) {
             throw new ResourceNotFoundException("Usuário", "id", usuarioId.toString());
         }
 
@@ -65,7 +64,10 @@ public class ProjectService {
 
     // 🔹 Criar novo projeto
     @Transactional
-    public ProjectDTO create(UUID usuarioId, ProjectDTO projectDTO) {
+    public ProjectDTO create(UUID usuarioId, UUID currentUserId, ProjectDTO projectDTO) {
+        if (!usuarioId.equals(currentUserId)) {
+            throw new ResourceNotFoundException("Usuário", "id", usuarioId.toString());
+        }
         User usuario = userRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário", "id", usuarioId.toString()));
 
@@ -83,9 +85,8 @@ public class ProjectService {
 
     // 🔹 Atualizar projeto
     @Transactional
-    public ProjectDTO update(UUID id, ProjectDTO projectDTO) {
-        Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", id.toString()));
+    public ProjectDTO update(UUID id, UUID currentUserId, ProjectDTO projectDTO) {
+        Project project = findOwned(id, currentUserId);
 
         project.setNome(projectDTO.getNome());
         project.setDescricao(projectDTO.getDescricao());
@@ -98,14 +99,18 @@ public class ProjectService {
 
     // 🔹 Deletar projeto
     @Transactional
-    public void delete(UUID id) {
-        if (!projectRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Projeto", "id", id.toString());
-        }
+    public void delete(UUID id, UUID currentUserId) {
+        findOwned(id, currentUserId);
         diagramConnectionRepository.deleteByProjetoId(id);
         diagramNodeRepository.deleteByProjetoId(id);
         diagramViewStateRepository.deleteByProjetoId(id);
         projectRepository.deleteById(id);
+    }
+
+    // Projeto de outro usuário é tratado como inexistente (404)
+    private Project findOwned(UUID id, UUID currentUserId) {
+        return projectRepository.findByIdAndUsuarioId(id, currentUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", id.toString()));
     }
 
     // 🔹 Converter Project para ProjectDTO
