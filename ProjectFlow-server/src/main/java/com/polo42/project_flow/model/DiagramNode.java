@@ -29,7 +29,7 @@ public class DiagramNode {
     @Column(name = "tipo", nullable = false, length = 40)
     private DiagramNodeType tipo;
 
-    @Column(name = "nome", nullable = false, length = 20)
+    @Column(name = "nome", nullable = false, length = 35)
     private String nome;
 
     @Column(name = "descricao", columnDefinition = "text")

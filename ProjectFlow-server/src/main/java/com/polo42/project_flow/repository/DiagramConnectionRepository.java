@@ -14,7 +14,7 @@ public interface DiagramConnectionRepository extends JpaRepository<DiagramConnec
 
     List<DiagramConnection> findByProjetoId(UUID projetoId);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from DiagramConnection c where c.projeto.id = :projetoId")
     void deleteByProjetoId(@Param("projetoId") UUID projetoId);
 }

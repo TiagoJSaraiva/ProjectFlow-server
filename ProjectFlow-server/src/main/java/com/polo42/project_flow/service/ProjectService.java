@@ -8,6 +8,7 @@ import com.polo42.project_flow.repository.ProjectRepository;
 import com.polo42.project_flow.repository.DiagramNodeRepository;
 import com.polo42.project_flow.repository.DiagramConnectionRepository;
 import com.polo42.project_flow.repository.DiagramViewStateRepository;
+import com.polo42.project_flow.repository.ElementRepository;
 import com.polo42.project_flow.repository.ProjectTaskCountProjection;
 import com.polo42.project_flow.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,9 @@ public class ProjectService {
 
     @Autowired
     private DiagramViewStateRepository diagramViewStateRepository;
+
+    @Autowired
+    private ElementRepository elementRepository;
 
     // 🔹 Buscar projeto por ID
     @Transactional(readOnly = true)
@@ -104,6 +108,7 @@ public class ProjectService {
         diagramConnectionRepository.deleteByProjetoId(id);
         diagramNodeRepository.deleteByProjetoId(id);
         diagramViewStateRepository.deleteByProjetoId(id);
+        elementRepository.deleteByProjetoId(id);
         projectRepository.deleteById(id);
     }
 

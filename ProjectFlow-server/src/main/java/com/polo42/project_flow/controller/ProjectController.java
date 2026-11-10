@@ -4,6 +4,7 @@ import com.polo42.project_flow.dto.ProjectDTO;
 import com.polo42.project_flow.security.CustomUserDetails;
 import com.polo42.project_flow.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -38,7 +39,7 @@ public class ProjectController {
     @PostMapping("/user/{userId}")
     public ResponseEntity<ProjectDTO> createProject(@PathVariable UUID userId,
                                                     @AuthenticationPrincipal CustomUserDetails principal,
-                                                    @RequestBody ProjectDTO projectDTO) {
+                                                    @Valid @RequestBody ProjectDTO projectDTO) {
         ProjectDTO savedProject = projectService.create(userId, principal.getId(), projectDTO);
         return ResponseEntity.ok(savedProject);
     }
@@ -47,7 +48,7 @@ public class ProjectController {
     @PutMapping("/{id}")
     public ResponseEntity<ProjectDTO> updateProject(@PathVariable UUID id,
                                                     @AuthenticationPrincipal CustomUserDetails principal,
-                                                    @RequestBody ProjectDTO projectDTO) {
+                                                    @Valid @RequestBody ProjectDTO projectDTO) {
         ProjectDTO updatedProject = projectService.update(id, principal.getId(), projectDTO);
         return ResponseEntity.ok(updatedProject);
     }

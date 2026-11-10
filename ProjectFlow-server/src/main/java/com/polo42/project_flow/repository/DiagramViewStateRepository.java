@@ -14,7 +14,7 @@ public interface DiagramViewStateRepository extends JpaRepository<DiagramViewSta
 
     Optional<DiagramViewState> findByProjetoId(UUID projetoId);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from DiagramViewState v where v.projeto.id = :projetoId")
     void deleteByProjetoId(@Param("projetoId") UUID projetoId);
 }

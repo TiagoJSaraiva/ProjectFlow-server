@@ -1,11 +1,16 @@
 package com.polo42.project_flow.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class ProjectDTO {
     private UUID id;
+    @NotBlank(message = "Nome do projeto é obrigatório")
+    @Size(max = 100, message = "Nome do projeto não pode ultrapassar 100 caracteres")
     private String nome;
+    @Size(max = 10000, message = "Descrição não pode ultrapassar 10.000 caracteres")
     private String descricao;
     private LocalDateTime dataCriado;
     private LocalDateTime ultimaAlteracao;

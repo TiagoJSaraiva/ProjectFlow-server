@@ -16,7 +16,7 @@ public interface DiagramNodeRepository extends JpaRepository<DiagramNode, UUID> 
 
     long countByProjetoId(UUID projetoId);
 
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("delete from DiagramNode n where n.projeto.id = :projetoId")
     void deleteByProjetoId(@Param("projetoId") UUID projetoId);
 

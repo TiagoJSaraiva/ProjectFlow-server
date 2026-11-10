@@ -38,6 +38,7 @@ import org.springframework.stereotype.Service;
 public class DiagramService {
 
     private static final Logger log = LoggerFactory.getLogger(DiagramService.class);
+    static final int MAX_NODE_NAME_LENGTH = 35;
 
     private final ProjectRepository projectRepository;
     private final DiagramNodeRepository nodeRepository;
@@ -238,8 +239,8 @@ public class DiagramService {
 
     private void validateNode(DiagramNodeDTO dto) {
         String name = dto.getName();
-        if (name != null && name.length() > 20) {
-            throw new BusinessException("O nome do elemento não pode ultrapassar 20 caracteres.");
+        if (name != null && name.trim().length() > MAX_NODE_NAME_LENGTH) {
+            throw new BusinessException("O nome do elemento não pode ultrapassar " + MAX_NODE_NAME_LENGTH + " caracteres.");
         }
         String description = dto.getDescription();
         if (description != null && description.length() > 10_000) {
