@@ -103,12 +103,15 @@ public class DiagramService {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ProjectDiagramDTO loadDiagram(UUID projectId) {
         log.debug("[DiagramService] Loading diagram for project {}", projectId);
         try {
             Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", projectId.toString()));
+
+            project.setUltimoAcesso(LocalDateTime.now());
+            projectRepository.save(project);
 
             List<DiagramNodeDTO> nodeDTOs = nodeRepository.findByProjetoIdOrderByCreatedAtAsc(projectId)
                 .stream()
