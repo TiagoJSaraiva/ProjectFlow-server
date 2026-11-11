@@ -39,6 +39,8 @@ public class DiagramService {
 
     private static final Logger log = LoggerFactory.getLogger(DiagramService.class);
     static final int MAX_NODE_NAME_LENGTH = 35;
+    static final int MAX_NODES = 500;
+    static final int MAX_CONNECTIONS = 1000;
 
     private final ProjectRepository projectRepository;
     private final DiagramNodeRepository nodeRepository;
@@ -66,6 +68,8 @@ public class DiagramService {
         try {
             Project project = projectRepository.findByIdAndUsuarioId(projectId, currentUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Projeto", "id", projectId.toString()));
+
+            validateDiagramShape(request);
 
             project.setUltimoAcesso(LocalDateTime.now());
             projectRepository.save(project);
@@ -162,6 +166,32 @@ public class DiagramService {
                 throw new BusinessException("A descrição do projeto não pode ultrapassar 10.000 caracteres.");
             }
             project.setDescricao(metadata.getDescription());
+        }
+    }
+
+    // Limites de tamanho e ids repetidos no proprio payload (senao viram erro 500 de chave duplicada)
+    private void validateDiagramShape(SaveProjectDiagramRequest request) {
+        List<DiagramNodeDTO> nodes = request.getNodes() != null ? request.getNodes() : List.of();
+        List<DiagramConnectionDTO> connections = request.getConnections() != null ? request.getConnections() : List.of();
+
+        if (nodes.size() > MAX_NODES) {
+            throw new BusinessException("O diagrama não pode ter mais de " + MAX_NODES + " elementos.");
+        }
+        if (connections.size() > MAX_CONNECTIONS) {
+            throw new BusinessException("O diagrama não pode ter mais de " + MAX_CONNECTIONS + " conexões.");
+        }
+
+        java.util.Set<UUID> nodeIds = new java.util.HashSet<>();
+        for (DiagramNodeDTO node : nodes) {
+            if (node.getId() != null && !nodeIds.add(node.getId())) {
+                throw new BusinessException("Há ids de elementos repetidos no diagrama.");
+            }
+        }
+        java.util.Set<UUID> connectionIds = new java.util.HashSet<>();
+        for (DiagramConnectionDTO connection : connections) {
+            if (connection.getId() != null && !connectionIds.add(connection.getId())) {
+                throw new BusinessException("Há ids de conexões repetidos no diagrama.");
+            }
         }
     }
 
