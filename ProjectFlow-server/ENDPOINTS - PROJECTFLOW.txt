@@ -20,7 +20,7 @@ CONVENCOES GERAIS
     { "nome": "Nome do projeto é obrigatório", "message": "Nome do projeto é obrigatório" }
 - Códigos de erro:
     400 requisição inválida (validação de DTO, JSON malformado, UUID/tipo inválido na URL ou no corpo)
-    401 sem token, token inválido ou expirado
+    401 sem token, token inválido/expirado, ou emitido antes da última troca/redefinição de senha
     403 acesso negado
     404 recurso inexistente, de outro usuário ou rota inexistente
     405 método HTTP não suportado
@@ -54,7 +54,8 @@ GET    /api/users                  Retorna uma lista com apenas o próprio usuá
 GET    /api/users/{id}             Dados da própria conta (404 se {id} for de outro usuário).
 PUT    /api/users/{id}             Atualiza nome e e-mail. Corpo: { "nome", "email" }.
 PUT    /api/users/{id}/password    Troca a senha da própria conta. Corpo: texto puro (text/plain)
-                                   com a nova senha.  204
+                                   com a nova senha.  204. Os tokens JWT emitidos antes da troca deixam de valer
+                                   (inclusive o usado na chamada): é preciso fazer login de novo.
 DELETE /api/users/{id}             Exclui a própria conta e, na mesma transação, todos os seus
                                    projetos, diagramas, elementos e tokens.  204
 

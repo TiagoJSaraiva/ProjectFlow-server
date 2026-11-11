@@ -1,6 +1,7 @@
 package com.polo42.project_flow.model;
 
 import jakarta.persistence.*;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -33,6 +34,10 @@ public class User {
     @Column(name = "data_verificado")
     private LocalDateTime dataVerificado;
 
+    // Carimbo da ultima troca/redefinicao de senha; tokens JWT emitidos antes dele deixam de valer
+    @Column(name = "senha_alterada_em")
+    private Instant senhaAlteradaEm;
+
     // Um usuário pode ter vários projetos
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> projetos = new ArrayList<>();
@@ -56,6 +61,9 @@ public class User {
 
     public LocalDateTime getDataCriado() { return dataCriado; }
     public void setDataCriado(LocalDateTime dataCriado) { this.dataCriado = dataCriado; }
+
+    public Instant getSenhaAlteradaEm() { return senhaAlteradaEm; }
+    public void setSenhaAlteradaEm(Instant senhaAlteradaEm) { this.senhaAlteradaEm = senhaAlteradaEm; }
 
     public List<Project> getProjetos() { return projetos; }
     public void setProjetos(List<Project> projetos) { this.projetos = projetos; }

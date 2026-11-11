@@ -16,6 +16,7 @@ import java.util.UUID;
 public class JwtTokenProvider {
 
     static final int MIN_SECRET_LENGTH = 64;
+    static final String PASSWORD_VERSION_CLAIM = "pv";
 
     @Value("${app.jwt.secret:}")
     private String jwtSecret;
@@ -48,6 +49,7 @@ public class JwtTokenProvider {
 
         return Jwts.builder()
                 .setSubject(userDetails.getId().toString())
+                .claim(PASSWORD_VERSION_CLAIM, userDetails.getPasswordVersion())
                 .setIssuedAt(now)
                 .setExpiration(expiryDate)
                 .signWith(getSigningKey(), SignatureAlgorithm.HS512)
@@ -62,6 +64,17 @@ public class JwtTokenProvider {
                 .getBody();
 
         return UUID.fromString(claims.getSubject());
+    }
+
+    /** Versao da senha vigente quando o token foi emitido (0 se ausente). */
+    public long getPasswordVersionFromToken(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+        Object value = claims.get(PASSWORD_VERSION_CLAIM);
+        return value instanceof Number number ? number.longValue() : 0L;
     }
 
     public boolean validateToken(String token) {

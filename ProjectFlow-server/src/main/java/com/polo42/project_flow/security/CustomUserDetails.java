@@ -12,11 +12,18 @@ public class CustomUserDetails implements UserDetails {
     private UUID id;
     private String email;
     private String senha;
+    private long passwordVersion;
 
     public CustomUserDetails(User user) {
         this.id = user.getId();
         this.email = user.getEmail();
         this.senha = user.getSenha();
+        this.passwordVersion = user.getSenhaAlteradaEm() != null ? user.getSenhaAlteradaEm().toEpochMilli() : 0L;
+    }
+
+    /** Epoch em ms da ultima troca de senha (0 se nunca trocada); gravado no token como claim "pv". */
+    public long getPasswordVersion() {
+        return passwordVersion;
     }
 
     public UUID getId() {
