@@ -38,7 +38,8 @@ POST /api/auth/login               Corpo: { "email", "senha" }.
                                    200 + { "token", "tipo", "userId", "nome", "email" }.
                                    422 se credenciais inválidas ou e-mail ainda não verificado.
 POST /api/auth/verify-email        Corpo: { "token" }. Confirma o e-mail.  200 / 422
-POST /api/auth/resend-verification Corpo: { "email" }. Reenvia a verificação.  200 / 422
+POST /api/auth/resend-verification Corpo: { "email" }. Reenvia a verificação. Sempre 200 com corpo vazio,
+                                   exista ou não a conta e já esteja ou não verificada (não revela o estado).
 POST /api/auth/recover             Corpo: { "email" }. Envia o código/link de recuperação.  200
 POST /api/auth/reset-password      Corpo: { "token", "novaSenha" }. Redefine a senha.  200 / 422
 
@@ -52,9 +53,12 @@ USUÁRIOS (/api/users) - apenas a própria conta
 
 GET    /api/users                  Retorna uma lista com apenas o próprio usuário.
 GET    /api/users/{id}             Dados da própria conta (404 se {id} for de outro usuário).
-PUT    /api/users/{id}             Atualiza nome e e-mail. Corpo: { "nome", "email" }.
-PUT    /api/users/{id}/password    Troca a senha da própria conta. Corpo: texto puro (text/plain)
-                                   com a nova senha.  204. Os tokens JWT emitidos antes da troca deixam de valer
+PUT    /api/users/{id}             Atualiza o nome. Corpo: { "nome" (2 a 100), "email" (opcional) }.
+                                   O e-mail não pode ser alterado: se enviado, deve ser igual ao atual (senão 422).
+                                   400 se o nome faltar/for inválido.
+PUT    /api/users/{id}/password    Troca a senha da própria conta. Corpo JSON:
+                                   { "senhaAtual", "novaSenha" (6 a 100) }. 400 se faltar/for inválido,
+                                   422 se a senha atual estiver errada.  204. Os tokens JWT emitidos antes da troca deixam de valer
                                    (inclusive o usado na chamada): é preciso fazer login de novo.
 DELETE /api/users/{id}             Exclui a própria conta e, na mesma transação, todos os seus
                                    projetos, diagramas, elementos e tokens.  204
@@ -95,7 +99,8 @@ PUT /api/projects/{projectId}/diagram
                            "style", "metadata" } ]
       }
     Resposta (GET e PUT): { projectId, projectName, projectDescription, viewport, nodes, connections }
-    Erros: 400 (id não UUID, tipo de nó desconhecido), 422 (nome do nó com mais de 35 caracteres,
+    Limites: até 500 nós e 1.000 conexões; ids repetidos no mesmo corpo respondem 422.
+    Erros: 400 (id não UUID, tipo de nó desconhecido), 422 (nome do nó com mais de 35 caracteres, limites excedidos, ids repetidos,
     id de nó/conexão já usado por outro projeto, conexão para nó inexistente).
 
 -------------------------------------------------------

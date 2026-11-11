@@ -45,10 +45,12 @@ o workflow de CI e esta documentação.
 - Projetos por usuário: criar, listar, ler, renomear/descrever e excluir. Cada projeto tem um diagrama.
 - Persistência do diagrama: nós (`RECTANGLE`, `CIRCLE`; nome de até 35 caracteres), conexões com ponto de
   dobra e estilo, e o viewport (zoom, deslocamento, tamanho da grade). Salvar substitui o diagrama inteiro.
+- Limites do diagrama: no máximo 500 nós e 1.000 conexões, sem ids repetidos em um mesmo salvamento.
 - `ultimoAcesso` do projeto (atualizado ao carregar o diagrama) e `ultimaAlteracao` (atualizada ao salvar).
 - Autorização por dono: toda operação sobre projeto, diagrama e usuário é restrita ao dono do JWT;
   recurso de outro usuário responde `404`.
 - Exclusão de conta que remove todos os dados do usuário em uma única transação.
+- Atualização de conta: só o nome pode ser alterado (o e-mail é fixo); a troca de senha exige a senha atual.
 - Tokens emitidos antes de uma troca ou redefinição de senha deixam de ser aceitos.
 - SMTP opcional: sem ele, os links de verificação e recuperação são escritos no log do servidor.
 - Datas serializadas como strings ISO-8601 e geradas em UTC.
@@ -114,13 +116,13 @@ Recursos de outro usuário respondem `404`. Datas são strings ISO-8601 sem fuso
 | POST | `/api/auth/register` | pública | Cadastro (`nome`, `email`, `senha` com ao menos 6 caracteres); envia o e-mail de verificação |
 | POST | `/api/auth/login` | pública | Login (`email`, `senha`); devolve `token`, `userId`, `nome`, `email`. Credenciais erradas ou e-mail não verificado: `422` |
 | POST | `/api/auth/verify-email` | pública | Confirma o e-mail com `token` |
-| POST | `/api/auth/resend-verification` | pública | Reenvia o e-mail de verificação (`email`) |
+| POST | `/api/auth/resend-verification` | pública | Reenvia o e-mail de verificação (`email`); sempre `200` com corpo vazio, exista ou não a conta e já esteja ou não verificada |
 | POST | `/api/auth/recover` | pública | Solicita o e-mail de redefinição de senha (`email`) |
 | POST | `/api/auth/reset-password` | pública | Define nova senha (`token`, `novaSenha`) |
 | GET | `/api/users` | JWT | Lista usuários: devolve apenas quem chama |
 | GET | `/api/users/{id}` | JWT | Dados da própria conta |
-| PUT | `/api/users/{id}` | JWT | Atualiza o próprio nome e e-mail |
-| PUT | `/api/users/{id}/password` | JWT | Troca a própria senha (corpo em texto puro); `204` e invalida os tokens existentes |
+| PUT | `/api/users/{id}` | JWT | Atualiza o próprio nome (`nome`, 2 a 100 caracteres). `email` só pode ser enviado se for igual ao atual; tentar mudá-lo responde `422` |
+| PUT | `/api/users/{id}/password` | JWT | Troca a própria senha: JSON `{"senhaAtual", "novaSenha"}` (nova senha de 6 a 100 caracteres); senha atual errada `422`; `204` e invalida os tokens existentes |
 | DELETE | `/api/users/{id}` | JWT | Exclui a própria conta e todos os seus dados (`204`) |
 | GET | `/api/projects/user/{userId}` | JWT | Lista os próprios projetos (`userId` deve ser o de quem chama) |
 | POST | `/api/projects/user/{userId}` | JWT | Cria projeto (`nome` obrigatório, até 100; `descricao` até 10.000) |
@@ -143,7 +145,7 @@ Códigos de erro (todos os corpos trazem `message`):
 | 404 | Recurso inexistente, de outro usuário, ou rota desconhecida |
 | 405 | Método HTTP não suportado |
 | 415 | Tipo de conteúdo não suportado |
-| 422 | Regra de negócio: e-mail em uso, token inválido, nome de nó com mais de 35 caracteres, id de nó/conexão já usado por outro projeto, login recusado |
+| 422 | Regra de negócio: e-mail em uso, token inválido, tentativa de trocar o e-mail, senha atual incorreta, nome de nó com mais de 35 caracteres, ids repetidos ou excesso de nós/conexões no diagrama, id de nó/conexão já usado por outro projeto, login recusado |
 | 500 | Erro inesperado (registrado no log) |
 
 O mesmo contrato está descrito em `ProjectFlow-server/ENDPOINTS - PROJECTFLOW.txt`.
@@ -157,7 +159,7 @@ O mesmo contrato está descrito em `ProjectFlow-server/ENDPOINTS - PROJECTFLOW.t
 
 | Variável | Obrigatória | Padrão | Descrição |
 |---|---|---|---|
-| `JWT_SECRET` | sim | nenhum | Segredo de assinatura do JWT, mínimo de 64 caracteres. O servidor não sobe sem ele |
+| `JWT_SECRET` | sim | nenhum | Segredo de assinatura do JWT, mínimo de 64 caracteres, gerado por você (`openssl rand -base64 64`). O servidor não sobe se estiver vazio, curto, for um valor de exemplo ou um segredo que foi publicado no início do histórico deste repositório |
 | `DB_USERNAME` | sim | nenhum | Usuário do banco |
 | `DB_PASSWORD` | sim | nenhum | Senha do banco |
 | `DB_URL` | não | `jdbc:mysql://localhost:3306/project_flow?...` | URL JDBC (o compose aponta para o serviço `db`) |
@@ -176,9 +178,13 @@ O `.env.example` na raiz lista as variáveis com valores fictícios. Copie para 
 ## Executando com Docker Compose
 
 ```bash
-cp .env.example .env        # depois defina valores reais, principalmente JWT_SECRET e as senhas do banco
+cp .env.example .env
+# edite o .env: defina as senhas do banco e um JWT_SECRET seu, por exemplo a saída de:
+#   openssl rand -base64 64
 docker compose up --build
 ```
+
+O `JWT_SECRET` fica vazio de propósito no `.env.example`: o Compose e o servidor se recusam a iniciar até que você o preencha.
 
 Isso sobe o MySQL 8 (sem publicar porta no host, para não conflitar com um MySQL local) e o servidor em
 `http://localhost:8080`. Sem `MAIL_HOST`, leia os links de verificação e recuperação com
@@ -190,8 +196,10 @@ Isso sobe o MySQL 8 (sem publicar porta no host, para não conflitar com um MySQ
 ## Executando sem Docker
 
 1. Crie o banco: `CREATE DATABASE project_flow;`.
-2. Forneça as variáveis. Copie `.env.example` para `ProjectFlow-server/.env` (lido quando a aplicação inicia
-   pelo `main`) ou exporte-as no shell. `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET` são obrigatórias.
+2. Forneça as variáveis. Copie `.env.example` para `ProjectFlow-server/.env` e preencha (lido do diretório de
+   trabalho quando a aplicação inicia pelo `main`, por exemplo `spring-boot:run` ou `java -jar`) ou exporte-as no
+   shell; uma variável já definida no ambiente tem prioridade sobre o `.env`.
+   `DB_USERNAME`, `DB_PASSWORD` e `JWT_SECRET` são obrigatórias.
 3. Inicie o servidor:
 
 ```bash
@@ -229,7 +237,10 @@ Os testes são de integração com MockMvc e sobem a aplicação inteira com o p
 MySQL, segredo JWT exclusivo de teste e `JavaMailSender` simulado. Não precisam de MySQL, SMTP nem Docker.
 Cobrem o carregamento do contexto, a autorização por dono em todos os endpoints com dois usuários, um teste por
 bug corrigido (persistência do diagrama, exclusão de conta, códigos HTTP, datas ISO, nome de nó com 35
-caracteres), os caminhos de e-mail com e sem SMTP, datas em UTC e a invalidação de tokens após troca de senha.
+caracteres), os caminhos de e-mail com e sem SMTP, datas em UTC, a invalidação de tokens após troca de senha, a
+validação de atualização de usuário e de senha, os limites do diagrama, tokens de verificação e redefinição
+(expirados, reutilizados), login sem e-mail verificado, JWT forjado e expirado, `resend-verification` e a recusa,
+na inicialização, de segredo JWT vazio, curto ou de exemplo.
 
 ## Integração contínua
 
@@ -255,7 +266,8 @@ pull request para `main`.
 - Falha de autorização responde `404` (e não `403`) para não revelar ids de recursos de outros usuários.
 - Troca ou redefinição de senha invalida todos os tokens anteriores, inclusive o de quem trocou; o cliente precisa fazer login de novo.
 - Falhas de login usam `422` com mensagem genérica, não `401`.
-- Não há limite de tentativas (rate limiting) em login, cadastro, recuperação e reenvio; cadastro e reenvio revelam se um e-mail existe.
+- Não há limite de tentativas (rate limiting) em login, cadastro, recuperação e reenvio. O cadastro ainda responde `422` "e-mail já em uso",
+  o que revela que um endereço está cadastrado (recuperação e reenvio respondem igual para endereços conhecidos e desconhecidos).
 - Os tokens de verificação e redefinição ficam em texto puro no banco; os já usados não são removidos.
 - O JWT dura 24 horas; não há refresh token nem revogação além da troca de senha.
 - No modo de desenvolvimento (sem SMTP) o log contém os links de verificação e recuperação: não use esse modo com usuários reais.
