@@ -190,8 +190,9 @@ Isso sobe o MySQL 8 (sem publicar porta no host, para não conflitar com um MySQ
 `http://localhost:8080`. Sem `MAIL_HOST`, leia os links de verificação e recuperação com
 `docker compose logs server`.
 
-> O Dockerfile e o `docker-compose.yml` foram escritos para este repositório, mas **não foram executados de ponta
-> a ponta**; só o `docker compose config` foi usado para validar a sintaxe.
+> A configuração do Compose foi executada de ponta a ponta no Docker 28 (build da imagem, MySQL 8, cadastro,
+> verificação de e-mail pelo fallback no log, login, operações de projeto e diagrama, isolamento por dono e
+> exclusão de conta). O primeiro build baixa todas as dependências do Maven e pode levar vários minutos.
 
 ## Executando sem Docker
 
@@ -273,7 +274,7 @@ pull request para `main`.
 - No modo de desenvolvimento (sem SMTP) o log contém os links de verificação e recuperação: não use esse modo com usuários reais.
 - O esquema depende de `ddl-auto=update`; não há migrações versionadas.
 - A API legada `/api/elements` e a tabela `elementos` não são usadas pelo frontend.
-- A configuração Docker não foi executada de ponta a ponta, e o workflow do GitHub depende do runner hospedado.
+- A configuração Docker foi validada apenas localmente (nunca em uma plataforma de hospedagem), e o workflow do GitHub depende do runner hospedado.
 
 ## Créditos
 

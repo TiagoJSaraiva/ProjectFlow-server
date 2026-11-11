@@ -191,8 +191,9 @@ This starts MySQL 8 (no port published on the host, so it cannot clash with a lo
 `http://localhost:8080`. Without `MAIL_HOST`, read the verification and recovery links with
 `docker compose logs server`.
 
-> The Dockerfile and `docker-compose.yml` were written for this repository, but **they have not been executed
-> end to end**; only `docker compose config` was used to validate the syntax.
+> The Compose setup was run end to end on Docker 28 (image build, MySQL 8, registration, e-mail verification
+> through the log fallback, login, project and diagram operations, per-owner isolation and account deletion).
+> The first build downloads all Maven dependencies and can take several minutes.
 
 ## Running without Docker
 
@@ -273,7 +274,7 @@ There is **no public instance** of this API. The public demo of the frontend doe
 - In development mode (no SMTP) the log contains verification and recovery links: do not use that mode with real users.
 - Schema management relies on `ddl-auto=update`; there are no versioned migrations.
 - The legacy `/api/elements` API and `elementos` table are unused by the frontend.
-- The Docker setup has not been run end to end, and the GitHub workflow depends on the hosted runner.
+- The Docker setup was validated locally only (never on a hosting platform), and the GitHub workflow depends on the hosted runner.
 
 ## Credits
 
