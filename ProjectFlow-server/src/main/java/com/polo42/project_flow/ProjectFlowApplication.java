@@ -1,6 +1,5 @@
 package com.polo42.project_flow;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.annotation.PostConstruct;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -22,9 +21,8 @@ public class ProjectFlowApplication {
     public static void main(String[] args) {
         TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
 
-        // Load environment variables from .env file
-        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-        dotenv.entries().forEach(entry -> System.setProperty(entry.getKey(), entry.getValue()));
+        // .env opcional no diretorio de trabalho; variaveis ja definidas no ambiente prevalecem
+        EnvFileLoader.load();
 
         SpringApplication.run(ProjectFlowApplication.class, args);
     }
