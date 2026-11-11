@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,23 +25,20 @@ public class PasswordResetService {
 
     private final PasswordResetTokenRepository tokenRepository;
     private final UserRepository userRepository;
-    private final JavaMailSender mailSender;
-    private final String mailFrom;
+    private final MailService mailService;
     private final String frontendBaseUrl;
     private final PasswordEncoder passwordEncoder;
 
     public PasswordResetService(
             PasswordResetTokenRepository tokenRepository,
             UserRepository userRepository,
-            JavaMailSender mailSender,
+            MailService mailService,
             PasswordEncoder passwordEncoder,
-            @Value("${spring.mail.from:no-reply@projectflow.local}") String mailFrom,
             @Value("${app.frontend.base-url:https://projectflow.app}") String frontendBaseUrl
     ) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
-        this.mailSender = mailSender;
-        this.mailFrom = mailFrom;
+        this.mailService = mailService;
         this.passwordEncoder = passwordEncoder;
         this.frontendBaseUrl = frontendBaseUrl;
     }
@@ -104,14 +99,8 @@ public class PasswordResetService {
                 "Link direto: " + resetLink + "\n\n" +
                 "Se você não solicitou, ignore este email.";
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailFrom);
-        message.setTo(user.getEmail());
-        message.setSubject("Recuperação de senha - ProjectFlow");
-        message.setText(messageBody);
-
         try {
-            mailSender.send(message);
+            mailService.send(user.getEmail(), "Recuperação de senha - ProjectFlow", messageBody);
         } catch (MailException exception) {
             LOGGER.error("Failed to send password recovery email", exception);
             throw new BusinessException("Não foi possível enviar o email de recuperação. Verifique o endereço e tente novamente.");

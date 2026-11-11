@@ -9,8 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,21 +24,18 @@ public class EmailVerificationService {
 
     private final EmailVerificationTokenRepository tokenRepository;
     private final UserRepository userRepository;
-    private final JavaMailSender mailSender;
-    private final String mailFrom;
+    private final MailService mailService;
     private final String verificationBaseUrl;
 
     public EmailVerificationService(
             EmailVerificationTokenRepository tokenRepository,
             UserRepository userRepository,
-            JavaMailSender mailSender,
-            @Value("${spring.mail.from:no-reply@projectflow.local}") String mailFrom,
+            MailService mailService,
             @Value("${app.frontend.base-url:https://projectflow.app}") String verificationBaseUrl
     ) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
-        this.mailSender = mailSender;
-        this.mailFrom = mailFrom;
+        this.mailService = mailService;
         this.verificationBaseUrl = verificationBaseUrl;
     }
 
@@ -107,14 +102,8 @@ public class EmailVerificationService {
                 link + "\n\n" +
                 "Se você não criou uma conta, ignore esta mensagem.";
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(mailFrom);
-        message.setTo(user.getEmail());
-        message.setSubject("Confirme seu email - ProjectFlow");
-        message.setText(body);
-
         try {
-            mailSender.send(message);
+            mailService.send(user.getEmail(), "Confirme seu email - ProjectFlow", body);
         } catch (MailException exception) {
             LOGGER.error("Falha ao enviar email de verificação", exception);
             throw new BusinessException("Não foi possível enviar o email de confirmação. Tente novamente.");
