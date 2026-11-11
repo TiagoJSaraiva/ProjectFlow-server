@@ -1,52 +1,120 @@
-ENDPOINTS DE AUTENTICAÇÃO (/api/auth)
-Registro & Login
+ENDPOINTS - PROJECTFLOW (contrato atual da API)
+=======================================================
 
-POST /api/auth/register - Registrar novo usuário
-POST /api/auth/login - Fazer login (retorna JWT)
+CONVENCOES GERAIS
 
-GET /api/auth/verify - Verificar se token é válido
+- Autenticação: todos os endpoints, exceto /api/auth/**, exigem o cabeçalho
+  "Authorization: Bearer <jwt>" (token devolvido por POST /api/auth/login, validade de 24 h).
+- Autorização por dono: projetos, diagramas, elementos e dados de usuário só são acessíveis
+  pelo próprio dono (usuário do token). Recurso de outro usuário responde 404, exatamente como
+  um recurso inexistente, e nunca é alterado.
+- Datas (dataCriado, ultimaAlteracao, ultimoAcesso, dataVerificado, timestamp...): sempre
+  string ISO-8601 sem fuso, ex.: "2025-12-04T18:30:00" (podem vir com fração de segundos,
+  ex.: "2025-12-04T18:30:00.123456"). Nunca array.
+- IDs: UUID. UUID malformado na URL responde 400.
+- Erros: corpo JSON sempre com o campo "message". Os erros de negócio, de recurso e de
+  segurança trazem também timestamp, details, status e error:
+    { "timestamp": "...", "message": "...", "details": "uri=/api/...", "status": 404, "error": "..." }
+  Erros de validação de DTO (400) mantêm um campo por atributo inválido, além de "message"
+  (mensagens unidas por "; "):
+    { "nome": "Nome do projeto é obrigatório", "message": "Nome do projeto é obrigatório" }
+- Códigos de erro:
+    400 requisição inválida (validação de DTO, JSON malformado, UUID/tipo inválido na URL ou no corpo)
+    401 sem token, token inválido ou expirado
+    403 acesso negado
+    404 recurso inexistente, de outro usuário ou rota inexistente
+    405 método HTTP não suportado
+    415 tipo de conteúdo não suportado
+    422 regra de negócio (ex.: e-mail já em uso, token inválido, limite de tamanho, login recusado)
+    500 erro inesperado (registrado no log do servidor)
 
 -------------------------------------------------------
 
-ENDPOINTS DE USUÁRIOS (/api/users)
-CRUD de Usuários
+AUTENTICAÇÃO (/api/auth) - públicos
 
-GET /api/users - Listar todos os usuários
-GET /api/users/{id} - Buscar usuário por ID
+POST /api/auth/register            Cadastrar usuário e enviar e-mail de verificação.
+                                   Corpo: { "nome", "email", "senha" (mín. 6) }.  200 + UserDTO
+POST /api/auth/login               Corpo: { "email", "senha" }.
+                                   200 + { "token", "tipo", "userId", "nome", "email" }.
+                                   422 se credenciais inválidas ou e-mail ainda não verificado.
+POST /api/auth/verify-email        Corpo: { "token" }. Confirma o e-mail.  200 / 422
+POST /api/auth/resend-verification Corpo: { "email" }. Reenvia a verificação.  200 / 422
+POST /api/auth/recover             Corpo: { "email" }. Envia o código/link de recuperação.  200
+POST /api/auth/reset-password      Corpo: { "token", "novaSenha" }. Redefine a senha.  200 / 422
 
-PUT /api/users/{id} - Atualizar dados do usuário
-PUT /api/users/{id}/password - Atualizar senha do usuário
+E-mail em desenvolvimento: se o SMTP não estiver configurado (variável MAIL_HOST vazia), nada é
+enviado e o conteúdo da mensagem, com o link/código de verificação ou recuperação, é registrado
+no log do servidor. Com MAIL_HOST definido, o e-mail é enviado normalmente.
 
-DELETE /api/users/{id} - Excluir usuário
+-------------------------------------------------------
 
------------------------------------------------------------
+USUÁRIOS (/api/users) - apenas a própria conta
 
-ENDPOINTS DE PROJETOS (/api/projects)
-Gerenciamento de Projetos
+GET    /api/users                  Retorna uma lista com apenas o próprio usuário.
+GET    /api/users/{id}             Dados da própria conta (404 se {id} for de outro usuário).
+PUT    /api/users/{id}             Atualiza nome e e-mail. Corpo: { "nome", "email" }.
+PUT    /api/users/{id}/password    Troca a senha da própria conta. Corpo: texto puro (text/plain)
+                                   com a nova senha.  204
+DELETE /api/users/{id}             Exclui a própria conta e, na mesma transação, todos os seus
+                                   projetos, diagramas, elementos e tokens.  204
 
-GET /api/projects/user/{userId} - Listar projetos de um usuário
-GET /api/projects/{id} - Buscar projeto por ID
+Para {id} de outro usuário, todos respondem 404 e não alteram nada.
 
-POST /api/projects/user/{userId} - Criar novo projeto
+-------------------------------------------------------
 
-PUT /api/projects/{id} - Atualizar projeto
+PROJETOS (/api/projects)
 
-DELETE /api/projects/{id} - Excluir projeto
+GET    /api/projects/user/{userId} Lista os projetos do usuário ({userId} deve ser o do token; senão 404).
+POST   /api/projects/user/{userId} Cria projeto. Corpo: { "nome" (obrigatório, até 100), "descricao" (até 10.000) }.
+                                   200 + ProjectDTO.  400 se o nome estiver ausente/vazio.
+GET    /api/projects/{id}          Busca projeto.
+PUT    /api/projects/{id}          Atualiza nome e descrição (mesma validação do POST).
+DELETE /api/projects/{id}          Exclui projeto, diagrama e elementos.  204
 
------------------------------------------------------------
+ProjectDTO: { id, nome, descricao, dataCriado, ultimaAlteracao, ultimoAcesso, usuarioId,
+              usuarioNome, totalTarefas }
 
-ENDPOINTS DE ELEMENTOS (/api/elements)
-Elementos do Canvas
+-------------------------------------------------------
 
-GET /api/elements/project/{projectId} - Listar elementos de um projeto
-GET /api/elements/{id} - Buscar elemento por ID
+DIAGRAMA (/api/projects/{projectId}/diagram)
 
-POST /api/elements/project/{projectId} - Criar novo elemento
+GET /api/projects/{projectId}/diagram
+    Carrega o diagrama completo e atualiza o "ultimoAcesso" do projeto.
+PUT /api/projects/{projectId}/diagram
+    Substitui o diagrama inteiro e persiste nome/descrição do projeto (campo "project"),
+    atualizando "ultimaAlteracao".
+    Corpo:
+      {
+        "project":     { "name", "description" },
+        "viewport":    { "zoom", "offsetX", "offsetY", "gridSize" },
+        "nodes":       [ { "id" (UUID), "type" ("RECTANGLE"|"CIRCLE"), "name" (até 35 caracteres),
+                           "description" (até 10.000), "x", "y", "width", "height", "radius",
+                           "rotation", "text", "metadata" } ],
+        "connections": [ { "id" (UUID), "fromNodeId", "toNodeId", "bendPoint": {x, y},
+                           "style", "metadata" } ]
+      }
+    Resposta (GET e PUT): { projectId, projectName, projectDescription, viewport, nodes, connections }
+    Erros: 400 (id não UUID, tipo de nó desconhecido), 422 (nome do nó com mais de 35 caracteres,
+    id de nó/conexão já usado por outro projeto, conexão para nó inexistente).
 
-DELETE /api/elements/{id} - Excluir elemento
+-------------------------------------------------------
 
------> Atualizações Específicas
-PUT /api/elements/{id} - Atualizar dados básicos (nome, descrição)
-PUT /api/elements/{id}/content - Atualizar conteúdo interno
-PUT /api/elements/{id}/coordinates - Atualizar coordenadas no canvas
-PUT /api/elements/{id}/relations - Atualizar conexões com outros elementos
+ELEMENTOS (/api/elements) - API legada, mantida por compatibilidade (não usada pelo front)
+
+Todos exigem que o projeto/elemento seja do usuário do token (senão 404).
+
+GET    /api/elements/project/{projectId}   Lista elementos de um projeto
+POST   /api/elements/project/{projectId}   Cria elemento
+GET    /api/elements/{id}                  Busca elemento
+PUT    /api/elements/{id}                  Atualiza dados básicos (nome, descrição)
+PUT    /api/elements/{id}/content          Atualiza conteúdo interno (corpo texto puro)
+PUT    /api/elements/{id}/coordinates      Atualiza coordenadas no canvas (corpo texto puro)
+PUT    /api/elements/{id}/relations        Atualiza relações com outros elementos (corpo texto puro)
+DELETE /api/elements/{id}                  Exclui elemento  204
+
+-------------------------------------------------------
+
+REMOVIDO DA DOCUMENTAÇÃO
+
+GET /api/auth/verify  - nunca existiu no servidor (respondia 500); a validade do token é
+                        verificada em qualquer chamada autenticada (401 se inválido/expirado).
