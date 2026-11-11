@@ -192,8 +192,8 @@ class AuthorizationIntegrationTest extends AbstractIntegrationTest {
     @Test
     void trocarSenhaDeOutroUsuarioRetorna404ENaoTroca() throws Exception {
         asB(put("/api/users/" + userA.id() + "/password")
-                .contentType(MediaType.TEXT_PLAIN)
-                .content("nova-senha-do-invasor")).andExpect(status().isNotFound());
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"senhaAtual\":\"qualquer\",\"novaSenha\":\"nova-senha-do-invasor\"}")).andExpect(status().isNotFound());
         assertFalse(login(userA.email(), PASSWORD).isBlank(), "a senha original de A deve continuar valida");
     }
 
@@ -206,8 +206,8 @@ class AuthorizationIntegrationTest extends AbstractIntegrationTest {
     @Test
     void usuarioTrocaAPropriaSenha() throws Exception {
         asB(put("/api/users/" + userB.id() + "/password")
-                .contentType(MediaType.TEXT_PLAIN)
-                .content("outra-senha-123")).andExpect(status().isNoContent());
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"senhaAtual\":\"" + PASSWORD + "\",\"novaSenha\":\"outra-senha-123\"}")).andExpect(status().isNoContent());
         assertFalse(login(userB.email(), "outra-senha-123").isBlank());
     }
 

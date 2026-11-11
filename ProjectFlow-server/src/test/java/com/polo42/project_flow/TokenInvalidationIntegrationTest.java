@@ -35,8 +35,8 @@ class TokenInvalidationIntegrationTest extends AbstractIntegrationTest {
 
         mockMvc.perform(put("/api/users/" + user.id() + "/password")
                         .header("Authorization", user.bearer())
-                        .contentType(MediaType.TEXT_PLAIN)
-                        .content("senha-nova-456"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"senhaAtual\":\"" + PASSWORD + "\",\"novaSenha\":\"senha-nova-456\"}"))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/users/" + user.id()).header("Authorization", user.bearer()))

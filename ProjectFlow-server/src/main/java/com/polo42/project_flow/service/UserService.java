@@ -1,5 +1,7 @@
 package com.polo42.project_flow.service;
 
+import com.polo42.project_flow.dto.ChangePasswordDTO;
+import com.polo42.project_flow.dto.UpdateUserDTO;
 import com.polo42.project_flow.dto.UserDTO;
 import com.polo42.project_flow.exception.ResourceNotFoundException;
 import com.polo42.project_flow.exception.BusinessException;
@@ -78,16 +80,15 @@ public class UserService {
 
     // 🔹 Atualizar usuário
     @Transactional
-    public UserDTO update(UUID id, UUID currentUserId, UserDTO userDTO) {
+    public UserDTO update(UUID id, UUID currentUserId, UpdateUserDTO userDTO) {
         User user = findSelf(id, currentUserId);
 
-        // Verificar se o email já está em uso por outro usuário
-        if (userRepository.existsByEmailAndIdNot(userDTO.getEmail(), id)) {
-            throw new BusinessException("Email já está em uso por outro usuário");
+        // O e-mail nao pode ser alterado por aqui (evita trocar a identidade verificada sem nova verificacao)
+        if (userDTO.getEmail() != null && !userDTO.getEmail().equalsIgnoreCase(user.getEmail())) {
+            throw new BusinessException("Não é possível alterar o e-mail da conta.");
         }
 
-        user.setNome(userDTO.getNome());
-        user.setEmail(userDTO.getEmail());
+        user.setNome(userDTO.getNome().trim());
         
         User updatedUser = userRepository.save(user);
         return convertToDTO(updatedUser);
@@ -95,10 +96,14 @@ public class UserService {
 
     // 🔹 Atualizar senha
     @Transactional
-    public void updatePassword(UUID id, UUID currentUserId, String newPassword) {
+    public void updatePassword(UUID id, UUID currentUserId, ChangePasswordDTO request) {
         User user = findSelf(id, currentUserId);
 
-        user.setSenha(passwordEncoder.encode(newPassword));
+        if (!passwordEncoder.matches(request.getSenhaAtual(), user.getSenha())) {
+            throw new BusinessException("Senha atual incorreta.");
+        }
+
+        user.setSenha(passwordEncoder.encode(request.getNovaSenha()));
         user.setSenhaAlteradaEm(Instant.now());
         userRepository.save(user);
     }

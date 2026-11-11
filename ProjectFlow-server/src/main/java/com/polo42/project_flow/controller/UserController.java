@@ -1,8 +1,11 @@
 package com.polo42.project_flow.controller;
 
+import com.polo42.project_flow.dto.ChangePasswordDTO;
+import com.polo42.project_flow.dto.UpdateUserDTO;
 import com.polo42.project_flow.dto.UserDTO;
 import com.polo42.project_flow.security.CustomUserDetails;
 import com.polo42.project_flow.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -13,7 +16,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
@@ -38,7 +40,7 @@ public class UserController {
     @PutMapping("/{id}")
     public ResponseEntity<UserDTO> atualizar(@PathVariable UUID id,
                                          @AuthenticationPrincipal CustomUserDetails principal,
-                                         @RequestBody UserDTO userDTO) {
+                                         @Valid @RequestBody UpdateUserDTO userDTO) {
         UserDTO usuarioAtualizado = userService.update(id, principal.getId(), userDTO);
         return ResponseEntity.ok(usuarioAtualizado);
     }
@@ -47,8 +49,8 @@ public class UserController {
     @PutMapping("/{id}/password")
     public ResponseEntity<Void> atualizarSenha(@PathVariable UUID id,
                                               @AuthenticationPrincipal CustomUserDetails principal,
-                                              @RequestBody String novaSenha) {
-        userService.updatePassword(id, principal.getId(), novaSenha);
+                                              @Valid @RequestBody ChangePasswordDTO request) {
+        userService.updatePassword(id, principal.getId(), request);
         return ResponseEntity.noContent().build();
     }
 
