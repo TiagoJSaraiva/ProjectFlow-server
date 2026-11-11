@@ -81,13 +81,15 @@ public class EmailVerificationService {
     public void resendVerification(String email) {
         Optional<User> userOptional = userRepository.findByEmail(email);
         if (userOptional.isEmpty()) {
-            LOGGER.warn("Tentativa de reenvio para email inexistente: {}", email);
+            LOGGER.warn("Tentativa de reenvio para email inexistente");
             return;
         }
 
         User user = userOptional.get();
         if (user.isEmailVerificado()) {
-            throw new BusinessException("Conta já verificada.");
+            // Resposta identica a de e-mail inexistente, para nao revelar o estado da conta
+            LOGGER.info("Reenvio de verificação ignorado: conta já verificada");
+            return;
         }
 
         sendVerificationEmail(user);
